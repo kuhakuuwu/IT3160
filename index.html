@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Dijkstra Map - TP.HCM</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    #map { height: 90vh; width: 100%; }
+    body { margin: 0; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    const map = L.map('map').setView([10.762622, 106.660172], 14);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    // === Các điểm ở TP.HCM ===
+    const points = [
+      { lat: 10.762622, lng: 106.660172 }, // P0 - ĐH KHTN
+      { lat: 10.765650, lng: 106.661899 }, // P1 - ĐH Sư phạm
+      { lat: 10.763230, lng: 106.665350 }, // P2 - Công trường Dân Chủ
+      { lat: 10.760200, lng: 106.668000 }, // P3 - Ngã sáu Dân Chủ
+      { lat: 10.761400, lng: 106.663000 }, // P4 - Chướng ngại vật
+
+      { lat: 10.759150, lng: 106.660800 }, // P5 - Nhà thờ Đức Bà
+      { lat: 10.758000, lng: 106.662500 }, // P6 - Diamond Plaza
+      { lat: 10.756700, lng: 106.666200 }, // P7 - Công viên Tao Đàn
+      { lat: 10.757500, lng: 106.668800 }, // P8 - Cách mạng Tháng Tám
+      { lat: 10.760800, lng: 106.670500 }, // P9 - CV Lê Thị Riêng
+
+      { lat: 10.764300, lng: 106.667800 }, // P10
+      { lat: 10.766000, lng: 106.663500 }, // P11
+      { lat: 10.766800, lng: 106.659000 }, // P12
+      { lat: 10.764900, lng: 106.656800 }, // P13 - Chướng ngại vật
+      { lat: 10.761100, lng: 106.657500 }, // P14
+
+      { lat: 10.759800, lng: 106.663400 }, // P15
+      { lat: 10.763000, lng: 106.661000 }, // P16
+      { lat: 10.765200, lng: 106.657800 }, // P17
+      { lat: 10.767300, lng: 106.655600 }, // P18 - Chướng ngại vật
+      { lat: 10.768900, lng: 106.659800 }  // P19
+    ];
+
+    const obstacles = [4, 13, 18]; // Chướng ngại vật
+
+    // === Dijkstra ===
+    function euclideanDistance(a, b) {
+      return Math.sqrt((a.lat - b.lat) ** 2 + (a.lng - b.lng) ** 2);
+    }
+
+    function buildGraph(points, obstacles = []) {
+      const graph = {};
+      const obstacleSet = new Set(obstacles);
+
+      for (let i = 0; i < points.length; i++) {
+        if (obstacleSet.has(i)) continue;
+        const nodeA = `P${i}`;
+        graph[nodeA] = {};
+        for (let j = 0; j < points.length; j++) {
+          if (i === j || obstacleSet.has(j)) continue;
+          const nodeB = `P${j}`;
+          const dist = euclideanDistance(points[i], points[j]);
+          graph[nodeA][nodeB] = dist;
+        }
+      }
+      return graph;
+    }
+
+    class PriorityQueue {
+      constructor() {
+        this.nodes = [];
+      }
+      enqueue(priority, key) {
+        this.nodes.push({ key, priority });
+        this.sort();
+      }
+      dequeue() {
+        return this.nodes.shift();
+      }
+      sort() {
+        this.nodes.sort((a, b) => a.priority - b.priority);
+      }
+      isEmpty() {
+        return this.nodes.length === 0;
+      }
+    }
+
+    function dijkstra(graph, start, end) {
+      const distances = {};
+      const previous = {};
+      const pq = new PriorityQueue();
+
+      for (let node in graph) {
+        distances[node] = Infinity;
+        previous[node] = null;
+      }
+
+      distances[start] = 0;
+      pq.enqueue(0, start);
+
+      while (!pq.isEmpty()) {
+        const { key: current } = pq.dequeue();
+
+        for (let neighbor in graph[current]) {
+          const alt = distances[current] + graph[current][neighbor];
+          if (alt < distances[neighbor]) {
+            distances[neighbor] = alt;
+            previous[neighbor] = current;
+            pq.enqueue(alt, neighbor);
+          }
+        }
+      }
+
+      const path = [];
+      let curr = end;
+      while (curr) {
+        path.unshift(curr);
+        curr = previous[curr];
+      }
+
+      return path;
+    }
+
+    // === Xây đồ thị và tìm đường ===
+    const graph = buildGraph(points, obstacles);
+    const path = dijkstra(graph, 'P0', 'P9'); // Từ P0 đến P9
+
+    // === Hiển thị các điểm ===
+    points.forEach((pt, idx) => {
+      const label = `P${idx}`;
+      const marker = L.circleMarker([pt.lat, pt.lng], {
+        radius: 6,
+        color: obstacles.includes(idx) ? 'red' : 'blue',
+        fillOpacity: 0.8
+      }).addTo(map);
+      marker.bindPopup(label);
+    });
+
+    // === Vẽ đường đi ===
+    const pathCoords = path.map(p => {
+      const i = parseInt(p.replace('P', ''));
+      return [points[i].lat, points[i].lng];
+    });
+
+    if (pathCoords.length > 1) {
+      L.polyline(pathCoords, { color: 'green', weight: 4 }).addTo(map);
+    }
+  </script>
+</body>
+</html>
