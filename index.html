@@ -1,156 +1,109 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Dijkstra Map - TP.HCM</title>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-  <style>
-    #map { height: 90vh; width: 100%; }
-    body { margin: 0; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+    <link rel="stylesheet" href="style.css">
+    <title>Document</title>
 </head>
 <body>
-  <div id="map"></div>
-
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <script>
-    const map = L.map('map').setView([10.762622, 106.660172], 14);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(map);
-
-    // === Các điểm ở TP.HCM ===
-    const points = [
-      { lat: 10.762622, lng: 106.660172 }, // P0 - ĐH KHTN
-      { lat: 10.765650, lng: 106.661899 }, // P1 - ĐH Sư phạm
-      { lat: 10.763230, lng: 106.665350 }, // P2 - Công trường Dân Chủ
-      { lat: 10.760200, lng: 106.668000 }, // P3 - Ngã sáu Dân Chủ
-      { lat: 10.761400, lng: 106.663000 }, // P4 - Chướng ngại vật
-
-      { lat: 10.759150, lng: 106.660800 }, // P5 - Nhà thờ Đức Bà
-      { lat: 10.758000, lng: 106.662500 }, // P6 - Diamond Plaza
-      { lat: 10.756700, lng: 106.666200 }, // P7 - Công viên Tao Đàn
-      { lat: 10.757500, lng: 106.668800 }, // P8 - Cách mạng Tháng Tám
-      { lat: 10.760800, lng: 106.670500 }, // P9 - CV Lê Thị Riêng
-
-      { lat: 10.764300, lng: 106.667800 }, // P10
-      { lat: 10.766000, lng: 106.663500 }, // P11
-      { lat: 10.766800, lng: 106.659000 }, // P12
-      { lat: 10.764900, lng: 106.656800 }, // P13 - Chướng ngại vật
-      { lat: 10.761100, lng: 106.657500 }, // P14
-
-      { lat: 10.759800, lng: 106.663400 }, // P15
-      { lat: 10.763000, lng: 106.661000 }, // P16
-      { lat: 10.765200, lng: 106.657800 }, // P17
-      { lat: 10.767300, lng: 106.655600 }, // P18 - Chướng ngại vật
-      { lat: 10.768900, lng: 106.659800 }  // P19
-    ];
-
-    const obstacles = [4, 13, 18]; // Chướng ngại vật
-
-    // === Dijkstra ===
-    function euclideanDistance(a, b) {
-      return Math.sqrt((a.lat - b.lat) ** 2 + (a.lng - b.lng) ** 2);
-    }
-
-    function buildGraph(points, obstacles = []) {
-      const graph = {};
-      const obstacleSet = new Set(obstacles);
-
-      for (let i = 0; i < points.length; i++) {
-        if (obstacleSet.has(i)) continue;
-        const nodeA = `P${i}`;
-        graph[nodeA] = {};
-        for (let j = 0; j < points.length; j++) {
-          if (i === j || obstacleSet.has(j)) continue;
-          const nodeB = `P${j}`;
-          const dist = euclideanDistance(points[i], points[j]);
-          graph[nodeA][nodeB] = dist;
-        }
-      }
-      return graph;
-    }
-
-    class PriorityQueue {
-      constructor() {
-        this.nodes = [];
-      }
-      enqueue(priority, key) {
-        this.nodes.push({ key, priority });
-        this.sort();
-      }
-      dequeue() {
-        return this.nodes.shift();
-      }
-      sort() {
-        this.nodes.sort((a, b) => a.priority - b.priority);
-      }
-      isEmpty() {
-        return this.nodes.length === 0;
-      }
-    }
-
-    function dijkstra(graph, start, end) {
-      const distances = {};
-      const previous = {};
-      const pq = new PriorityQueue();
-
-      for (let node in graph) {
-        distances[node] = Infinity;
-        previous[node] = null;
-      }
-
-      distances[start] = 0;
-      pq.enqueue(0, start);
-
-      while (!pq.isEmpty()) {
-        const { key: current } = pq.dequeue();
-
-        for (let neighbor in graph[current]) {
-          const alt = distances[current] + graph[current][neighbor];
-          if (alt < distances[neighbor]) {
-            distances[neighbor] = alt;
-            previous[neighbor] = current;
-            pq.enqueue(alt, neighbor);
-          }
-        }
-      }
-
-      const path = [];
-      let curr = end;
-      while (curr) {
-        path.unshift(curr);
-        curr = previous[curr];
-      }
-
-      return path;
-    }
-
-    // === Xây đồ thị và tìm đường ===
-    const graph = buildGraph(points, obstacles);
-    const path = dijkstra(graph, 'P0', 'P9'); // Từ P0 đến P9
-
-    // === Hiển thị các điểm ===
-    points.forEach((pt, idx) => {
-      const label = `P${idx}`;
-      const marker = L.circleMarker([pt.lat, pt.lng], {
-        radius: 6,
-        color: obstacles.includes(idx) ? 'red' : 'blue',
-        fillOpacity: 0.8
-      }).addTo(map);
-      marker.bindPopup(label);
-    });
-
-    // === Vẽ đường đi ===
-    const pathCoords = path.map(p => {
-      const i = parseInt(p.replace('P', ''));
-      return [points[i].lat, points[i].lng];
-    });
-
-    if (pathCoords.length > 1) {
-      L.polyline(pathCoords, { color: 'green', weight: 4 }).addTo(map);
-    }
-  </script>
+    <div class="container-fluid" style="display: flex; justify-content: center; padding-top: 0.2%;">
+        <h2 class="text-danger">DEMO MÔN TRÍ TUỆ NHÂN TẠO (IT3160) </h2>  
+    </div>
+    <div class="container-fluid" style="display: flex; justify-content: center; padding-bottom: 1%;">
+       <h3 class="text-danger">Áp dụng A* tìm đường đi trong mê cung</h3>
+    </div>
+    <div class="row" id="hold">
+        <div class="col-5">
+            <h5 class="text-danger" style="text-align: center; padding-left: 2%; padding-bottom: 3% ">Sinh viên: Nguyễn Sinh Quân  - Lê Việt Anh</h5>
+            
+            <form class="content">
+                <div class="option">
+                    <label class="form-check-label" for="exampleCheck1">Chọn chế độ nước đi</label>
+                    <div class="option">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="diagonal" value="allowdiagonal" checked>
+                            <label class="form-check-label" for="diagonal">
+                                Cho phép đi chéo
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="diagonal" value="notallowdiagonal">
+                            <label class="form-check-label" for="diagonal">
+                                Không cho phép đi chéo
+                            </label>
+                        </div>
+                    </div>
+                    <label class="form-check-label" for="exampleCheck1">Chọn hàm heuristic</label>
+                    <div class="option">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="heuristic" value="1" check>
+                            <label class="form-check-label" for="heuristic">
+                                Euclide
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="heuristic" value="2">
+                            <label class="form-check-label" for="heuristic">
+                                Euclide without square
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="heuristic" value="3">
+                            <label class="form-check-label" for="heuristic">
+                                Chebychev
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="heuristic" value="4">
+                            <label class="form-check-label" for="heuristic">
+                                Mahatan
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="heuristic" value="5">
+                            <label class="form-check-label" for="heuristic">
+                                Octile
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="heuristic" value="6">
+                            <label class="form-check-label" for="heuristic">
+                                Tie-Breaking
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="heuristic" value="7">
+                            <label class="form-check-label" for="heuristic">
+                                Angle_Euclide
+                            </label>
+                        </div>
+                    </div>
+                    <div class="option">
+                        <p>Mode: <span id="mode">Select source and destination</span></p>
+                        <button type="button" class="btn btn-success col-5" id="createMaze">Maze Generating</button>
+                        <button type="button" class="btn btn-success col-7" id="selectSD">Select Source-Destination</button>
+                    </div>
+                    <div class="option">
+                        <p>Kết quả:</p>
+                        <p>Số ô trên đường đi: <span id="result"></span></p>
+                        <p>Tổng chi phí đường đi: <span id="cost"></span></span></p>
+                        <p>Số ô phải xét: <span id="considered"></span></span></p>
+                    </div>
+                    <button type="button" class="btn btn-success" id="clearMaze">Clear Maze</button>
+                    <button type="button" class="btn btn-success" id="reload">New Session</button>
+                </div>
+            </form>
+        </div>    
+        <div class="col-7 content" id="sketch-holder"></div>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.5.11/p5.js" type="text/javascript"></script>
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
+    <script src="main.js" type="text/javascript"></script>
 </body>
 </html>
