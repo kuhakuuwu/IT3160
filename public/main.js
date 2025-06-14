@@ -87,7 +87,7 @@ function generator(){
 
 
 	}
-	drill(70);
+	drill(50);
 
 }
 
@@ -384,12 +384,19 @@ function BFSAlgorithm() {
             hasPath = true;
             return pathTracing();
         }
+        // Tạo danh sách candidate theo lựa chọn đi chéo
         let candidate = [
             {x: current.x, y: current.y - 1},
             {x: current.x - 1, y: current.y},
             {x: current.x + 1, y: current.y},
             {x: current.x, y: current.y + 1}
         ];
+        if ($('input[name=diagonal]:checked').val() == "allowdiagonal") {
+            candidate.push({x: current.x - 1, y: current.y - 1});
+            candidate.push({x: current.x - 1, y: current.y + 1});
+            candidate.push({x: current.x + 1, y: current.y - 1});
+            candidate.push({x: current.x + 1, y: current.y + 1});
+        }
         for (let i = 0; i < candidate.length; i++) {
             let nx = candidate[i].x, ny = candidate[i].y;
             if (isInsideGrid(nx, ny) && !isWall(nx, ny) && !visited[nx][ny]) {
@@ -427,12 +434,19 @@ function GreedyAlgorithm() {
             hasPath = true;
             return pathTracing();
         }
+        // Tạo danh sách candidate theo lựa chọn đi chéo
         let candidate = [
             {x: current.x, y: current.y - 1},
             {x: current.x - 1, y: current.y},
             {x: current.x + 1, y: current.y},
             {x: current.x, y: current.y + 1}
         ];
+        if ($('input[name=diagonal]:checked').val() == "allowdiagonal") {
+            candidate.push({x: current.x - 1, y: current.y - 1});
+            candidate.push({x: current.x - 1, y: current.y + 1});
+            candidate.push({x: current.x + 1, y: current.y - 1});
+            candidate.push({x: current.x + 1, y: current.y + 1});
+        }
         for (let i = 0; i < candidate.length; i++) {
             let nx = candidate[i].x, ny = candidate[i].y;
             if (isInsideGrid(nx, ny) && !isWall(nx, ny) && !closed.some(n => n.x === nx && n.y === ny) && !open.some(n => n.x === nx && n.y === ny)) {
